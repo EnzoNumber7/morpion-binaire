@@ -10,6 +10,8 @@ void ChangeTurn(unsigned int* game);
 void Game(unsigned int* game);
 void ResetMask();
 bool CheckEmpty(unsigned int* game, int place);
+bool CheckTie(unsigned int* game);
+int CheckWin(unsigned int* game);
 
 unsigned int maskFull = 0xffffffff;
 unsigned int maskEmpty = 0;
@@ -101,12 +103,58 @@ bool CheckEmpty(unsigned int* game, int place)
     return false;
 }
 
+bool CheckTie(unsigned int* game) 
+{
+    for (int i = 0; i < 18; i += 2)
+    {
+
+        if ((*game & (0b11 << i)) == 3 || (*game & (0b11 << i)) == 0)
+            return false;
+            
+    }
+
+    return true;
+}
+
+int CheckWin(unsigned int* game)
+{
+    for (int i = 0; i < 18; i += 6)
+    {
+        if ((*game & (0b111111 << i)) == 0b101010 << i)
+            return 0;     
+        if ((*game & (0b111111 << i)) == 0b010101 << i)
+            return 1;
+    }
+    for (int i = 0; i < 6; i += 2)
+    {
+        if ((*game & (0b11 << i)) == 0b10 << i && (*game & (0b11 << i + 6)) == 0b10 << i + 6 && (*game & (0b11 << i + 12)) == 0b10 << i + 12)
+            return 0;
+        if ((*game & (0b11 << i)) == 0b01 << i && (*game & (0b11 << i + 6)) == 0b01 << i + 6 && (*game & (0b11 << i + 12)) == 0b01 << i + 12)
+            return 1;
+    }
+
+    if ((*game & (0b11)) == 0b10 && (*game & (0b11 << 8)) == 0b10 << 8 && (*game & (0b11 << 16)) == 0b10 << 16)
+        return 0;
+    if ((*game & (0b11)) == 0b01 && (*game & (0b11 << 8)) == 0b01 << 8 && (*game & (0b11 << 16)) == 0b01 << 16)
+        return 1;
+
+    if ((*game & (0b11 << 4)) == 0b10 << 4 && (*game & (0b11 << 8)) == 0b10 << 8 && (*game & (0b11 << 12)) == 0b10 << 12)
+        return 0;
+    if ((*game & (0b11 << 4)) == 0b01 << 4 && (*game & (0b11 << 8)) == 0b01 << 8 && (*game & (0b11 << 12)) == 0b01 << 12)
+        return 1;
+
+    return -1;
+}
+
 void Game(unsigned int* game)
 {
+    bool run = true;
+
     PrintGrid(game);
     unsigned int place;
-    while (true)
+    while (run)
     {
+
         std::cout << "Ou voulez vous jouer ?";
         std::cin >> place;
 
@@ -118,5 +166,18 @@ void Game(unsigned int* game)
         UpdateGrid(game, place - 1);
 
         PrintGrid(game);
+
+        if (CheckWin(game) != -1)
+        {
+            std::cout << "Victoire";
+            return;
+        }
+
+        if (CheckTie(game)) 
+        {
+            run = false;
+            std::cout << "Egalite";
+            return;
+        }
     }
 }
