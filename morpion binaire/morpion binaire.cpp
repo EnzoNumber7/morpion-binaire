@@ -4,11 +4,15 @@
 #include <iostream>
 #include <bitset>
 
+enum GameState { InGame, Tie, Player1Win, Player2Win };
+
 void PrintGrid(unsigned int* game);
+void ResetMask();
+void UpdateTie(unsigned int* game);
 void UpdateGrid(unsigned int* game, int place);
 void ChangeTurn(unsigned int* game);
+void ChangeState(unsigned int* game, GameState newState);
 void Game(unsigned int* game);
-void ResetMask();
 bool CheckEmpty(unsigned int* game, int place);
 bool CheckTie(unsigned int* game);
 int CheckWin(unsigned int* game);
@@ -22,9 +26,33 @@ unsigned int currentTurn = 0;
 int main()
 {
     unsigned int game = 0;
-    
-    Game(&game);
-   
+    int test = 0;
+    bool run = true;
+    unsigned int state = (game & (0b11 << 19));
+
+    while (run)
+    {
+        state = (game & (0b11 << 19));
+        switch (state)
+        {
+        case 0b00 << 19:
+            Game(&game);
+            break;
+        case 0b11 << 19:
+            std::cout << "Tie \n";
+            break;
+        case 0b10 << 19:
+            std::cout << "Player 1 win \n";
+            break;
+        case 0b01 << 19:
+            std::cout << "Player 2 win ? \n";
+            break;
+        default:
+            std::cout << "C'est pas bon du tout \n";
+            break;
+        }
+
+    }
 }
 
 void PrintGrid(unsigned int* game) 
@@ -95,6 +123,10 @@ void UpdateGrid(unsigned int* game, int place)
     ChangeTurn(game);
 }
 
+void UpdateTie(unsigned int* game)
+{
+}
+
 bool CheckEmpty(unsigned int* game, int place)
 {
     if ((*game & (0b11 << place * 2))) 
@@ -146,38 +178,67 @@ int CheckWin(unsigned int* game)
     return -1;
 }
 
+void ChangeState(unsigned int* game, GameState newState)
+{
+    maskFull ^= 0b11 << 19;
+    *game &= maskFull;
+
+    switch (newState)
+    {
+    case InGame:
+        maskEmpty |= 0b00 << 19;
+        break;
+    case Tie:
+        maskEmpty |= 0b11 << 19;
+        break;
+    case Player1Win:
+        maskEmpty |= 0b10 << 19;
+        break;
+    case Player2Win:
+        maskEmpty |= 0b01 << 19;
+        break;
+
+    default:
+        break;
+    };
+
+    *game |= maskEmpty;
+    ResetMask();
+}
+
 void Game(unsigned int* game)
 {
-    bool run = true;
 
     PrintGrid(game);
     unsigned int place;
-    while (run)
+   
+    std::cout << "Ou voulez vous jouer ?";
+    std::cin >> place;
+
+    if (CheckEmpty(game, place - 1)) {
+        std::cout << "La case est deja prise \n";
+    }
+
+    UpdateGrid(game, place - 1);
+
+    PrintGrid(game);
+
+    if (CheckWin(game) != -1)
     {
+        std::cout << "Victoire";
 
-        std::cout << "Ou voulez vous jouer ?";
-        std::cin >> place;
+        if (CheckWin(game) == 0)
+            ChangeState(game, Player1Win);
+        else
+            ChangeState(game, Player2Win);
 
-        if (CheckEmpty(game, place - 1)) {
-            std::cout << "La case est deja prise \n";
-            continue;
-        }
+        return;
+    }
 
-        UpdateGrid(game, place - 1);
-
-        PrintGrid(game);
-
-        if (CheckWin(game) != -1)
-        {
-            std::cout << "Victoire";
-            return;
-        }
-
-        if (CheckTie(game)) 
-        {
-            run = false;
-            std::cout << "Egalite";
-            return;
-        }
+    if (CheckTie(game)) 
+    {
+        std::cout << "Egalite";
+        ChangeState(game, Tie);
+        return;
     }
 }
